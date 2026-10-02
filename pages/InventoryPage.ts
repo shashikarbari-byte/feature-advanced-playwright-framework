@@ -1,10 +1,13 @@
 import { expect, Page } from '@playwright/test';
 
 export class InventoryPage {
-  constructor(private readonly page: Page) {}
+  private readonly title;
+  private readonly cartLink;
 
-  private title = this.page.locator('[data-test="title"]');
-  private cartLink = this.page.locator('[data-test="shopping-cart-link"]');
+  constructor(private readonly page: Page) {
+    this.title = this.page.locator('[data-test="title"]');
+    this.cartLink = this.page.locator('[data-test="shopping-cart-link"]');
+  }
 
   async expectLoaded() {
     await expect(this.title).toHaveText('Products');

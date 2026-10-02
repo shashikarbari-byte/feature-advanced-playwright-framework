@@ -15,8 +15,17 @@ export default defineConfig({
     actionTimeout: 10000,
     navigationTimeout: 30000
   },
+
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } }
-  ]
+    {
+      name: 'chrome',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        launchOptions: {
+          slowMo: 1000,
+        },
+      },
+    },
+  ],
 });
