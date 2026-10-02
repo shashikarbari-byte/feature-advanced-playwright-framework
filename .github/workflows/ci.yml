@@ -1,0 +1,128 @@
+name: E-Commerce Automation CI/CD
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+  schedule:
+    - cron: "30 18 * * 1-5"
+
+env:
+  NODE_VERSION: 20
+  CI: true
+
+jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: TypeScript type check
+        run: npm run lint
+
+  api-tests:
+    name: API Tests
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run API tests
+        run: npm run test:api
+
+      - name: Upload API report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-report
+          path: playwright-report/
+          retention-days: 14
+
+  ui-tests:
+    name: UI Tests (${{ matrix.browser }})
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run UI tests
+        run: npx playwright test tests/ui --project=${{ matrix.browser }}
+
+      - name: Upload UI report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-report-${{ matrix.browser }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  regression-gate:
+    name: Regression Gate
+    needs: [api-tests, ui-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Verify upstream jobs
+        run: |
+          if [[ "${{ needs.api-tests.result }}" != "success" || "${{ needs.ui-tests.result }}" != "success" ]]; then
+            echo "API or UI automation failed. Regression gate failed."
+            exit 1
+          fi
+          echo "All API and UI automation checks passed."
+
+  publish-report:
+    name: Publish Test Report Artifact
+    needs: regression-gate
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Create pipeline summary
+        run: |
+          echo "## Playwright CI/CD Pipeline" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Quality gate: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API tests: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- UI tests: Chromium + Firefox passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Regression gate: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Reports are available as workflow artifacts." >> "$GITHUB_STEP_SUMMARY"
