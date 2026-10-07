@@ -28,7 +28,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: TypeScript type check
         run: npm run lint
@@ -48,7 +48,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run API tests
         run: npm run test:api
@@ -80,7 +80,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps ${{ matrix.browser }}
@@ -123,6 +123,6 @@ jobs:
           echo "## Playwright CI/CD Pipeline" >> "$GITHUB_STEP_SUMMARY"
           echo "- Quality gate: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- API tests: passed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- UI tests: Chromium + Firefox passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- UI tests: Chrome is passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- Regression gate: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- Reports are available as workflow artifacts." >> "$GITHUB_STEP_SUMMARY"
